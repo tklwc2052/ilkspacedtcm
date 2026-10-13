@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lander</title>
+  <link rel="icon" type="image/png" href="https://i.ibb.co/Sw7nj3ZR/Screenshot-2026-08-26-8-26-57-PM-removebg-preview.png">
+  <style>
+    :root {
+      --taskbar-height: 48px;
+      --taskbar-color: rgba(18, 18, 18, 0.88);
+      --taskbar-border: rgba(255, 255, 255, 0.14);
+      --taskbar-hover: rgba(255, 255, 255, 0.12);
+      --taskbar-active: rgba(255, 255, 255, 0.2);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    body { background: black; }
+
+    #desktop {
+      width: 100%;
+      height: calc(100% - var(--taskbar-height));
+      padding: 10px;
+      display: grid;
+      grid-auto-flow: column;
+      grid-template-rows: repeat(auto-fill, 88px);
+      grid-auto-columns: 84px;
+      align-content: start;
+      justify-content: start;
+      gap: 4px;
+      background-color: black;
+      background-position: center;
+      background-size: cover;
+      background-repeat: no-repeat;
+    }
+
+    .shortcut {
+      width: 84px;
+      height: 88px;
+      padding: 5px 3px;
+      border: 1px solid transparent;
+      border-radius: 2px;
+      background: transparent;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 4px;
+      cursor: default;
+    }
+
+    .shortcut:hover {
+      border-color: rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .shortcut:focus-visible {
+      outline: 1px solid rgba(255, 255, 255, 0.65);
+      outline-offset: -1px;
+    }
+
+    .shortcut-image {
+      width: 50px;
+      height: 50px;
+      object-fit: contain;
+      pointer-events: none;
+    }
+
+    .shortcut-name {
+      width: 78px;
+      color: inherit;
+      font-size: 12px;
+      line-height: 14px;
+      text-align: center;
+      overflow-wrap: anywhere;
+      text-shadow: inherit;
+      pointer-events: none;
+      margin-top: auto;
+      min-height: 28px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .corner-image {
+      position: fixed;
+      right: 20px;
+      bottom: var(--taskbar-height);
+      width: 150px;
+      height: auto;
+      object-fit: contain;
+      z-index: 100;
+      pointer-events: auto;
+      cursor: default;
+    }
+
+    /* TASKBAR */
+    #taskbar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: var(--taskbar-height);
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      padding: 4px 5px;
+      color: white;
+      background: var(--taskbar-color);
+      border-top: 1px solid var(--taskbar-border);
+      box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      z-index: 1000;
+      user-select: none;
+    }
+
+    .taskbar-button {
+      height: 40px;
+      min-width: 40px;
+      padding: 5px 8px;
+      border: 0;
+      border-radius: 4px;
+      color: white;
+      background: transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .taskbar-button:hover { background: var(--taskbar-hover); }
+    .taskbar-button:active { background: var(--taskbar-active); }
+
+    .taskbar-button:focus-visible {
+      outline: 1px solid rgba(255, 255, 255, 0.8);
+      outline-offset: -2px;
+    }
+
+    #startButton {
+      font-size: 23px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    #taskbarSearchWrap {
+      position: relative;
+      flex: 0 1 260px;
+      min-width: 125px;
+      max-width: 260px;
+    }
+
+    #taskbarSearch {
+      width: 100%;
+      height: 36px;
+      padding: 0 12px 0 34px;
+      border: 1px solid rgba(255, 255, 255, 0.17);
+      border-radius: 5px;
+      color: white;
+      background: rgba(255, 255, 255, 0.1);
+      outline: none;
+      font: inherit;
+    }
+
+    #taskbarSearch:focus {
+      border-color: rgba(255, 255, 255, 0.55);
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    #taskbarSearch::placeholder { color: rgba(255, 255, 255, 0.68); }
+
+    .search-symbol {
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      font-size: 14px;
+    }
+
+    #searchResults {
+      position: fixed;
+      left: 50px;
+      bottom: calc(var(--taskbar-height) + 7px);
+      width: min(360px, calc(100vw - 14px));
+      max-height: 360px;
+      padding: 8px;
+      overflow-y: auto;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 8px;
+      color: white;
+      background: rgba(25, 25, 25, 0.96);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(18px);
+      z-index: 1002;
+    }
+
+    #searchResults[hidden] { display: none; }
+
+    .search-result {
+      width: 100%;
+      min-height: 52px;
+      padding: 7px 10px;
+      border: 0;
+      border-radius: 5px;
+      color: white;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .search-result:hover, .search-result.selected { background: rgba(255, 255, 255, 0.12); }
+    .search-result img { width: 34px; height: 34px; object-fit: contain; }
+    .search-result small { display: block; color: rgba(255,255,255,.64); margin-top: 2px; }
+    .search-none { padding: 16px 10px; color: rgba(255,255,255,.68); font-size: 13px; }
+
+    #cmdWindow {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: min(720px, calc(100vw - 24px));
+      height: min(430px, calc(100vh - 80px));
+      border: 1px solid #777;
+      background: #0c0c0c;
+      box-shadow: 0 18px 55px rgba(0,0,0,.7);
+      z-index: 1100;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #cmdWindow[hidden] { display: none; }
+    #cmdTitlebar { height: 34px; padding-left: 10px; background: #f3f3f3; color: #111; display: flex; align-items: center; font-size: 12px; }
+    #cmdTitlebar span { flex: 1; }
+    #cmdClose { align-self: stretch; width: 46px; border: 0; background: transparent; font-size: 17px; cursor: pointer; }
+    #cmdClose:hover { color: white; background: #c42b1c; }
+    #cmdOutput { flex: 1; margin: 0; padding: 8px; overflow-y: auto; color: #eee; white-space: pre-wrap; overflow-wrap: anywhere; font: 14px/1.35 Consolas, "Courier New", monospace; }
+    #cmdInputRow { display: flex; align-items: center; padding: 0 8px 8px; color: #eee; font: 14px Consolas, "Courier New", monospace; }
+    #cmdInput { flex: 1; min-width: 0; border: 0; outline: 0; color: #eee; background: transparent; font: inherit; }
+
+    #taskbarPins {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    #taskbarPins::-webkit-scrollbar { display: none; }
+
+    .pinned-app {
+      position: relative;
+      flex: 0 0 44px;
+      width: 44px;
+      padding: 5px;
+    }
+
+    .pinned-app::after {
+      content: "";
+      position: absolute;
+      left: 9px;
+      right: 9px;
+      bottom: 1px;
+      height: 2px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.8);
+      opacity: 0;
+    }
+
+    .pinned-app:hover::after { opacity: 0.7; }
+
+    .taskbar-icon {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+      pointer-events: none;
+    }
+
+    #taskbarSpacer { flex: 1; }
+
+    #clockButton {
+      min-width: 86px;
+      padding: 3px 9px;
+      flex-direction: column;
+      gap: 1px;
+      font-size: 11px;
+      line-height: 14px;
+      white-space: nowrap;
+    }
+
+    #showDesktopButton {
+      min-width: 7px;
+      width: 7px;
+      padding: 0;
+      border-left: 1px solid rgba(255, 255, 255, 0.28);
+      border-radius: 0;
+    }
+
+    /* START MENU */
+    #startMenu {
+      position: fixed;
+      left: 7px;
+      bottom: calc(var(--taskbar-height) + 7px);
+      width: min(330px, calc(100vw - 14px));
+      max-height: min(500px, calc(100vh - var(--taskbar-height) - 20px));
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 9px;
+      color: white;
+      background: rgba(25, 25, 25, 0.94);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      z-index: 999;
+      overflow-y: auto;
+    }
+
+    #startMenu[hidden] { display: none; }
+
+    .start-heading {
+      margin: 2px 4px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.78);
+    }
+
+    #startApps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .start-app {
+      min-height: 82px;
+      padding: 8px 5px;
+      border: 0;
+      border-radius: 6px;
+      color: white;
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+
+    .start-app:hover { background: rgba(255, 255, 255, 0.1); }
+
+    .start-app img {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+    }
+
+    .start-app span {
+      max-width: 100%;
+      font-size: 11px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 500px) {
+      #taskbarSearchWrap { flex-basis: 150px; max-width: 150px; }
+      #clockButton { min-width: 72px; padding-inline: 5px; }
+      .pinned-app { flex-basis: 40px; width: 40px; }
+      .corner-image { width: 105px; }
+    }
+  </style>
+</head>
+<body>
+  <main id="desktop" aria-label="Desktop"></main>
+
+  <img
+    id="cornerImage"
+    class="corner-image"
+    src="https://i.ibb.co/Sw7nj3ZR/Screenshot-2026-08-26-8-26-57-PM-removebg-preview.png"
+    alt="YouTube"
+  >
+
+  <section id="searchResults" aria-label="Search results" hidden></section>
+
+  <section id="cmdWindow" role="dialog" aria-label="Command Prompt" hidden>
+    <div id="cmdTitlebar"><span>Command Prompt</span><button id="cmdClose" type="button" aria-label="Close">×</button></div>
+    <pre id="cmdOutput"></pre>
+    <label id="cmdInputRow">C:\KL&gt;<input id="cmdInput" type="text" autocomplete="off" spellcheck="false" aria-label="Command"></label>
+  </section>
+
+  <section id="startMenu" aria-label="Start menu" hidden>
+    <div class="start-heading">All apps</div>
+    <div id="startApps"></div>
+  </section>
+
+  <nav id="taskbar" aria-label="Taskbar">
+    <button id="startButton" class="taskbar-button" type="button" title="Start" aria-label="Start">⊞</button>
+    <div id="taskbarSearchWrap">
+      <span class="search-symbol">⌕</span>
+      <input id="taskbarSearch" type="search" placeholder="Search" autocomplete="off" aria-label="Search apps and commands">
+    </div>
+    <div id="taskbarPins" aria-label="Pinned apps"></div>
+    <div id="taskbarSpacer"></div>
+    <button id="clockButton" class="taskbar-button" type="button" title="Date and time">
+      <span id="taskbarTime"></span>
+      <span id="taskbarDate"></span>
+    </button>
+    <button id="showDesktopButton" class="taskbar-button" type="button" title="Show desktop" aria-label="Show desktop"></button>
+  </nav>
+
+  <script>
+    /* ============================================================
+       ONLY EDIT THIS SECTION
+       ============================================================ */
+    const DESKTOP_BACKGROUND = {
+      imageUrl: "",
+      size: "cover",
+      position: "center"
+    };
+
+    const DESKTOP_FILES = [
+      {
+        name: "Chat",
+        pageUrl: "/chat/",
+        imageUrl: "https://i.ibb.co/Nw6WW8J/download.png",
+        pinned: true
+      },
+      {
+        name: "Bio",
+        pageUrl: "/about/",
+        imageUrl: "https://i.ibb.co/4RNR3CR3/jack.png",
+        pinned: true
+      },
+      {
+        name: "1.14.4",
+        pageUrl: "/1.14.4/",
+        imageUrl: "https://i.ibb.co/Qj62zwBG/download.jpg",
+        pinned: false
+      },
+      {
+        name: "info",
+        pageUrl: "/info/",
+        imageUrl: "https://i.ibb.co/9mLfZ6Nz/download-1.jpg",
+        pinned: false
+      },
+      {
+        name: "launcher",
+        pageUrl: "/launcher/",
+        imageUrl: "https://i.ibb.co/wF0L2pkq/Screenshot-2026-06-04-12-06-23-AM.png",
+        pinned: true
+      },
+      {
+        name: "snowrider3d",
+        pageUrl: "/snowrider3d/",
+        imageUrl: "https://i.ibb.co/N6jHrJ7Z/images.jpg",
+        pinned: true
+      }
+    ];
+
+    /* Set pinned: true to show a file on the taskbar.
+       Set pinned: false to keep it only on the desktop and Start menu. */
+
+    /* ============================================================
+       DO NOT EDIT BELOW THIS LINE UNLESS YOU WANT TO CHANGE THE CODE
+       ============================================================ */
+    const desktop = document.getElementById("desktop");
+    const taskbarPins = document.getElementById("taskbarPins");
+    const startButton = document.getElementById("startButton");
+    const startMenu = document.getElementById("startMenu");
+    const startApps = document.getElementById("startApps");
+    const showDesktopButton = document.getElementById("showDesktopButton");
+    const taskbarSearch = document.getElementById("taskbarSearch");
+    const searchResults = document.getElementById("searchResults");
+    const cmdWindow = document.getElementById("cmdWindow");
+    const cmdInput = document.getElementById("cmdInput");
+    const cmdOutput = document.getElementById("cmdOutput");
+    const cmdClose = document.getElementById("cmdClose");
+
+    function openFile(file) {
+      const link = file.pageUrl.trim();
+      if (!link || link.startsWith("PASTE_")) {
+        alert(`Add the pageUrl for ${file.name} in DESKTOP_FILES.`);
+        return;
+      }
+      window.location.href = link;
+    }
+
+    function makeImage(file, className) {
+      const image = document.createElement("img");
+      image.className = className;
+      image.src = file.imageUrl;
+      image.alt = `${file.name} icon`;
+      image.draggable = false;
+      image.addEventListener("error", () => image.remove());
+      return image;
+    }
+
+    if (DESKTOP_BACKGROUND.imageUrl.trim()) {
+      desktop.style.backgroundImage = `url("${DESKTOP_BACKGROUND.imageUrl}")`;
+      desktop.style.backgroundSize = DESKTOP_BACKGROUND.size || "cover";
+      desktop.style.backgroundPosition = DESKTOP_BACKGROUND.position || "center";
+    }
+
+    DESKTOP_FILES.forEach((file) => {
+      const shortcut = document.createElement("button");
+      shortcut.className = "shortcut";
+      shortcut.type = "button";
+      shortcut.title = `Double-click to open ${file.name}`;
+
+      if (DESKTOP_BACKGROUND.imageUrl.trim()) {
+        shortcut.style.textShadow = "1px 1px 3px black";
+      }
+
+      const image = makeImage(file, "shortcut-image");
+      const name = document.createElement("span");
+      name.className = "shortcut-name";
+      name.textContent = file.name;
+
+      shortcut.append(image, name);
+      shortcut.addEventListener("click", (event) => event.stopPropagation());
+      shortcut.addEventListener("dblclick", () => openFile(file));
+      desktop.appendChild(shortcut);
+
+      const startApp = document.createElement("button");
+      startApp.className = "start-app";
+      startApp.type = "button";
+      startApp.title = `Open ${file.name}`;
+      const startImage = makeImage(file, "");
+      const startName = document.createElement("span");
+      startName.textContent = file.name;
+      startApp.append(startImage, startName);
+      startApp.addEventListener("click", () => openFile(file));
+      startApps.appendChild(startApp);
+
+      if (file.pinned === true) {
+        const pin = document.createElement("button");
+        pin.className = "taskbar-button pinned-app";
+        pin.type = "button";
+        pin.title = file.name;
+        pin.setAttribute("aria-label", `Open ${file.name}`);
+        pin.appendChild(makeImage(file, "taskbar-icon"));
+        pin.addEventListener("click", () => openFile(file));
+        taskbarPins.appendChild(pin);
+      }
+    });
+
+
+    function openCommandPrompt() {
+      startMenu.hidden = true;
+      searchResults.hidden = true;
+      taskbarSearch.value = "";
+      cmdWindow.hidden = false;
+      if (!cmdOutput.textContent) {
+        cmdOutput.textContent = "KL Command Prompt [Version 1.0]\nType help for a list of commands.\n\n";
+      }
+      cmdInput.focus();
+    }
+
+    function closeCommandPrompt() {
+      cmdWindow.hidden = true;
+      cmdInput.value = "";
+    }
+
+    function renderSearchResults() {
+      const query = taskbarSearch.value.trim().toLowerCase();
+      searchResults.replaceChildren();
+      if (!query) { searchResults.hidden = true; return; }
+
+      const matches = DESKTOP_FILES.filter(file =>
+        file.name.toLowerCase().includes(query) || file.pageUrl.toLowerCase().includes(query)
+      );
+
+      if ("cmd".includes(query) || "command prompt".includes(query)) {
+        const cmdResult = document.createElement("button");
+        cmdResult.className = "search-result selected";
+        cmdResult.type = "button";
+        cmdResult.innerHTML = '<div style="width:34px;height:28px;background:#111;border:1px solid #aaa;color:white;padding:5px;font:11px Consolas">C:\&gt;</div><div><strong>Command Prompt</strong><small>App</small></div>';
+        cmdResult.addEventListener("click", openCommandPrompt);
+        searchResults.appendChild(cmdResult);
+      }
+
+      matches.forEach((file) => {
+        const result = document.createElement("button");
+        result.className = "search-result";
+        result.type = "button";
+        result.appendChild(makeImage(file, ""));
+        const text = document.createElement("div");
+        const title = document.createElement("strong");
+        title.textContent = file.name;
+        const detail = document.createElement("small");
+        detail.textContent = "App";
+        text.append(title, detail);
+        result.appendChild(text);
+        result.addEventListener("click", () => openFile(file));
+        searchResults.appendChild(result);
+      });
+
+      if (!searchResults.children.length) {
+        const none = document.createElement("div");
+        none.className = "search-none";
+        none.textContent = `No results for “${taskbarSearch.value.trim()}”`;
+        searchResults.appendChild(none);
+      }
+      searchResults.hidden = false;
+    }
+
+    taskbarSearch.addEventListener("input", renderSearchResults);
+    taskbarSearch.addEventListener("focus", renderSearchResults);
+    taskbarSearch.addEventListener("click", event => event.stopPropagation());
+    searchResults.addEventListener("click", event => event.stopPropagation());
+    taskbarSearch.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      const query = taskbarSearch.value.trim().toLowerCase();
+      if (query === "cmd" || query === "command prompt") { openCommandPrompt(); return; }
+      const match = DESKTOP_FILES.find(file => file.name.toLowerCase().includes(query));
+      if (match) openFile(match);
+    });
+
+    cmdClose.addEventListener("click", closeCommandPrompt);
+    cmdWindow.addEventListener("click", event => event.stopPropagation());
+    cmdInput.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      const raw = cmdInput.value.trim();
+      const [command = "", ...args] = raw.split(/\s+/);
+      const cmd = command.toLowerCase();
+      cmdOutput.textContent += `C:\KL>${raw}\n`;
+      cmdInput.value = "";
+
+      if (cmd === "help") {
+        cmdOutput.textContent += "help          Show commands\napps          List available apps\nopen NAME     Open an app\ndate          Show the date\ntime          Show the time\necho TEXT     Print text\nclear         Clear the screen\nexit          Close Command Prompt\n";
+      } else if (cmd === "apps") {
+        cmdOutput.textContent += DESKTOP_FILES.map(file => file.name).join("\n") + "\n";
+      } else if (cmd === "open") {
+        const wanted = args.join(" ").toLowerCase();
+        const file = DESKTOP_FILES.find(item => item.name.toLowerCase() === wanted || item.name.toLowerCase().includes(wanted));
+        if (file && wanted) openFile(file);
+        else cmdOutput.textContent += "App not found. Use apps to see available apps.\n";
+      } else if (cmd === "date") {
+        cmdOutput.textContent += new Date().toLocaleDateString() + "\n";
+      } else if (cmd === "time") {
+        cmdOutput.textContent += new Date().toLocaleTimeString() + "\n";
+      } else if (cmd === "echo") {
+        cmdOutput.textContent += args.join(" ") + "\n";
+      } else if (cmd === "clear" || cmd === "cls") {
+        cmdOutput.textContent = "";
+      } else if (cmd === "exit") {
+        closeCommandPrompt();
+      } else if (cmd) {
+        cmdOutput.textContent += `'${command}' is not recognized as a command.\n`;
+      }
+      cmdOutput.textContent += cmdWindow.hidden ? "" : "\n";
+      cmdOutput.scrollTop = cmdOutput.scrollHeight;
+    });
+
+    startButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      startMenu.hidden = !startMenu.hidden;
+    });
+
+    startMenu.addEventListener("click", (event) => event.stopPropagation());
+    document.addEventListener("click", () => {
+      startMenu.hidden = true;
+      searchResults.hidden = true;
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        startMenu.hidden = true;
+        searchResults.hidden = true;
+        if (!cmdWindow.hidden) closeCommandPrompt();
+      }
+    });
+
+    showDesktopButton.addEventListener("click", () => {
+      startMenu.hidden = true;
+      desktop.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    });
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById("taskbarTime").textContent = now.toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit"
+      });
+      document.getElementById("taskbarDate").textContent = now.toLocaleDateString([], {
+        month: "numeric",
+        day: "numeric",
+        year: "numeric"
+      });
+    }
+
+    updateClock();
+    window.setInterval(updateClock, 1000);
+
+    const cornerImage = document.getElementById("cornerImage");
+    let hoverTimer;
+    cornerImage.addEventListener("mouseenter", () => {
+      hoverTimer = window.setTimeout(() => {
+        window.location.href = "https://www.youtube.com/watch?v=xvFZjo5PgG0";
+      }, 1000);
+    });
+    cornerImage.addEventListener("mouseleave", () => window.clearTimeout(hoverTimer));
+  </script>
+</body>
+</html>
